@@ -30,14 +30,4 @@ public class EventController {
     public EventResponse update(@PathVariable UUID id, @RequestBody UpdateEventRequest req) {
         return svc.update(id, req);
     }
-
-    @GetMapping
-    public List<EventResponse> search(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) String city,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to
-    ) {
-        return svc.search(q, city, from, to);
-    }
 }

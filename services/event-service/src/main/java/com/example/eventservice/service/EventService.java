@@ -4,18 +4,20 @@ import com.example.eventservice.domain.Event;
 import com.example.eventservice.dto.CreateEventRequest;
 import com.example.eventservice.dto.EventResponse;
 import com.example.eventservice.dto.UpdateEventRequest;
+import com.example.eventservice.outbox.OutboxPublisher;
 import com.example.eventservice.repo.EventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
 public class EventService {
     private final EventRepository repo;
-    public EventService(EventRepository repo) { this.repo = repo; }
+    private final OutboxPublisher outboxPublisher;
+    public EventService(EventRepository repo, OutboxPublisher outboxPublisher) { this.repo = repo;
+        this.outboxPublisher = outboxPublisher;
+    }
 
     @Transactional
     public EventResponse create(CreateEventRequest r) {
@@ -26,6 +28,7 @@ public class EventService {
         e.setPriceMin(r.priceMin()); e.setPriceMax(r.priceMax());
         e.setTotalSeats(r.totalSeats()); e.setAvailableSeats(r.availableSeats());
         var saved = repo.save(e);
+        outboxPublisher.publishEventUpsert(saved);
         return toResp(saved);
     }
 
@@ -48,16 +51,8 @@ public class EventService {
         if (r.priceMax()!=null) e.setPriceMax(r.priceMax());
         if (r.totalSeats()!=null) e.setTotalSeats(r.totalSeats());
         if (r.availableSeats()!=null) e.setAvailableSeats(r.availableSeats());
+        outboxPublisher.publishEventUpsert(e);
         return toResp(e);
-    }
-
-    @Transactional(readOnly = true)
-    public List<EventResponse> search(String q, String city,
-                                      OffsetDateTime from, OffsetDateTime to) {
-        if (q != null && !q.isBlank()) return repo.findByTitleContainingIgnoreCase(q).stream().map(this::toResp).toList();
-        if (city != null && from != null && to != null)
-            return repo.findByCityIgnoreCaseAndStartTimeBetween(city, from, to).stream().map(this::toResp).toList();
-        return repo.findAll().stream().map(this::toResp).toList();
     }
 
     private EventResponse toResp(Event e) {

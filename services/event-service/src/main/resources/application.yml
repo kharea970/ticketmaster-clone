@@ -18,3 +18,9 @@ spring:
 
 management:
   endpoints.web.exposure.include: health,info
+
+elastic:
+  base-url: ${ELASTIC_HOST:http://elasticsearch:9200}
+outbox:
+  relay:
+    interval: 1000

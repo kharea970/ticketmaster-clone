@@ -26,18 +26,21 @@ services:
     profiles: [infra]
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    image: elastic/elasticsearch:8.15.2
+    platform: linux/arm64
     container_name: ticketmaster_elasticsearch
     restart: always
     environment:
       - xpack.security.enabled=false
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xmx512m -Xms512m
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m -XX:UseSVE=0
+      - CLI_JAVA_OPTS=-XX:UseSVE=0
     ulimits:
       memlock: { soft: -1, hard: -1 }
-    volumes: [ es_data:/usr/share/elasticsearch/data ]
-    ports: ["9200:9200"]
-    profiles: [infra]
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
 
   gateway-service:
     build:
@@ -61,11 +64,13 @@ services:
       context: ../services/event-service
       dockerfile: Dockerfile
     container_name: event-service
-    expose: [ "8081" ]
+    ports:
+      - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
+      ELASTIC_HOST: http://elasticsearch:9200
     depends_on:
       postgres:
         condition: service_healthy
