@@ -1,16 +1,4 @@
-version: '3.8'
-
-# This file sets up the local development environment for the TicketMaster clone.
-# It includes core services, data stores (Postgres, Redis, ElasticSearch), and monitoring.
-
 services:
-
-  # ====================================================================
-  # 1. CORE INFRASTRUCTURE
-  # ====================================================================
-
-  # --- Database (PostgreSQL) ---
-  # Used for storing Event, Booking, and core transactional data.
   postgres:
     image: postgres:16-alpine
     container_name: ticketmaster_postgres
@@ -19,88 +7,61 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: ticketmaster_db
-    ports:
-      - "5432:5432"
-    volumes:
-      # Use a volume for persistent data storage
-      - postgres_data:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+    volumes: [ postgres_data:/var/lib/postgresql/data ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d ticketmaster_db"]
       interval: 5s
       timeout: 5s
       retries: 5
+    profiles: [infra]
 
-  # --- Redis (for Caching and Rate Limiting) ---
-  # Used for Caching API results, Gateway Rate Limiting, and the Virtual Waiting Queue TTL.
   redis:
     image: redis:7-alpine
     container_name: ticketmaster_redis
     restart: always
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
+    ports: ["6380:6379"]
+    command: ["redis-server","--appendonly","yes"]
+    volumes: [ redis_data:/data ]
+    profiles: [infra]
 
-  # --- ElasticSearch (for Search Service) ---
-  # Used by the Search Service for fast, full-text searching (GET /events/search).
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
     container_name: ticketmaster_elasticsearch
     restart: always
     environment:
-      # Required for development/single-node setup
       - xpack.security.enabled=false
       - discovery.type=single-node
-      # Memory allocation for development environments
       - ES_JAVA_OPTS=-Xmx512m -Xms512m
     ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
+      memlock: { soft: -1, hard: -1 }
+    volumes: [ es_data:/usr/share/elasticsearch/data ]
+    ports: ["9200:9200"]
+    profiles: [infra]
 
-  # ====================================================================
-  # 2. MICROSERVICES
-  # NOTE: Replace 'build: .' with 'image: your-repo/your-service:latest'
-  # for production environments.
-  # ====================================================================
-
-  # --- API Gateway ---
-  # Maps requests from port 8080 to the internal services.
   gateway-service:
-    # CORRECTED CONTEXT: Now pointing to ./gateway/gateway-service/
     build:
-      context: ./gateway/gateway-service
+      context: ../gateway/gateway-service
       dockerfile: Dockerfile
     container_name: gateway-service
-    ports:
-      - "8080:8080" # Exposed port
+    ports: [ "8080:8080" ]
     environment:
-      # Point to internal service names and ports
       EVENT_SERVICE_URI: http://event-service:8081
       BOOKING_SERVICE_URI: http://booking-service:8082
-      PAYMENT_SERVICE_URI: http://payment-service:8083
+      SEARCH_SERVICE_URI: http://search-service:8083
       REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: change-me
     depends_on:
       redis:
         condition: service_started
-      postgres:
-        condition: service_healthy
 
-  # --- Event Service (Port 8081) ---
-  # Manages event creation and detailed information.
   event-service:
     build:
       context: ./services/event-service
       dockerfile: Dockerfile
     container_name: event-service
-    # Service port (internal network)
-    expose:
-      - "8081"
+    expose: ["8081"]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db
       SPRING_DATASOURCE_USERNAME: user
@@ -108,16 +69,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    profiles: [app]
 
-  # --- Booking/Reservation Service (Port 8082) ---
-  # Handles seat reservations, ticketing, and the virtual queue logic.
   booking-service:
     build:
       context: ./services/reservation-service
       dockerfile: Dockerfile
     container_name: booking-service
-    expose:
-      - "8082"
+    expose: ["8082"]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db
       SPRING_DATASOURCE_USERNAME: user
@@ -128,52 +87,37 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    profiles: [app]
 
-  # --- Search Service (Port 8083) ---
-  # Handles complex searches using ElasticSearch.
   search-service:
     build:
       context: ./services/search-service
       dockerfile: Dockerfile
     container_name: search-service
-    expose:
-      - "8083"
+    expose: ["8083"]
     environment:
-      # Connect to ElasticSearch
       ELASTIC_HOST: http://elasticsearch:9200
     depends_on:
       elasticsearch:
         condition: service_started
+    profiles: [app]
 
-  # ====================================================================
-  # 3. OTHER SERVICES (Stubs)
-  # ====================================================================
-
-  # --- Payment Service (Stripe/Payment Gateway integration) ---
-  # Assuming port 8084
   payment-service:
     build:
       context: ./services/payment-service
       dockerfile: Dockerfile
     container_name: payment-service
-    expose:
-      - "8084"
-    # depends_on, environment variables, etc.
+    expose: ["8084"]
+    profiles: [app]
 
-  # --- Notification Service (Email/SMS) ---
-  # Assuming port 8085
   notification-service:
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
     container_name: notification-service
-    expose:
-      - "8085"
-    # depends_on, environment variables, etc.
+    expose: ["8085"]
+    profiles: [app]
 
-# ====================================================================
-# 4. VOLUMES (Data Persistence)
-# ====================================================================
 volumes:
   postgres_data:
   redis_data:
