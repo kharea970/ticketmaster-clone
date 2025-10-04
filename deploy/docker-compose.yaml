@@ -58,10 +58,10 @@ services:
 
   event-service:
     build:
-      context: ./services/event-service
+      context: ../services/event-service
       dockerfile: Dockerfile
     container_name: event-service
-    expose: ["8081"]
+    expose: [ "8081" ]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db
       SPRING_DATASOURCE_USERNAME: user
@@ -69,7 +69,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    profiles: [app]
+    profiles: [ app ]
 
   booking-service:
     build:
