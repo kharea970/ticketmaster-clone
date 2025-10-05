@@ -124,6 +124,19 @@ services:
     expose: ["8085"]
     profiles: [app]
 
+  kibana:
+    image: elastic/kibana:8.15.2
+    container_name: ticketmaster_kibana
+    depends_on:
+      elasticsearch:
+        condition: service_started
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      XPACK_SECURITY_ENABLED: "false"   # matches your ES setting
+    ports:
+      - "5601:5601"
+    profiles: [ infra ]
+
 volumes:
   postgres_data:
   redis_data:
