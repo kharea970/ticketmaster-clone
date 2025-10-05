@@ -96,12 +96,13 @@ services:
 
   search-service:
     build:
-      context: ./services/search-service
+      context: ../services/search-service
       dockerfile: Dockerfile
     container_name: search-service
     expose: ["8083"]
     environment:
       ELASTIC_HOST: http://elasticsearch:9200
+      EVENTS_INDEX: events
     depends_on:
       elasticsearch:
         condition: service_started

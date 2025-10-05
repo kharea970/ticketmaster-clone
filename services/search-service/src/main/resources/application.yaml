@@ -1,0 +1,17 @@
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  elastic:
+    host: ${ELASTIC_HOST:http://elasticsearch:9200}
+    index: ${EVENTS_INDEX:events}
