@@ -1,6 +1,6 @@
 # ticketmaster-clone
 Distributed Ticket Booking System (TicketMaster-like backend) – Built to explore distributed systems concepts: high-concurrency seat reservations, idempotent payments, event-driven workflows, Redis locks, Elasticsearch search, and real-time seat updates with SSE/Kafka.
-<p align="center"> <img src="docs/architecture.png" width="820" alt="Architecture Diagram"/> </p>
+<p align="center"> <img src="docs/Architecture.png" width="820" alt="Architecture Diagram"/> </p>
 
 ### Core Components
 1. API Gateway (/gateway/gateway-service)
