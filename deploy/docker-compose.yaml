@@ -67,7 +67,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db?currentSchema=event
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
       ELASTIC_HOST: http://elasticsearch:9200
@@ -78,21 +78,23 @@ services:
 
   booking-service:
     build:
-      context: ./services/reservation-service
+      context: ../services/booking-service
       dockerfile: Dockerfile
     container_name: booking-service
-    expose: ["8082"]
+    ports: [ "8082:8082" ]
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketmaster_db?currentSchema=booking
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
-      REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      APP_BOOKING_HOLD_TTL_SECONDS: 600
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    profiles: [app]
+    profiles: [ app ]
 
   search-service:
     build:
