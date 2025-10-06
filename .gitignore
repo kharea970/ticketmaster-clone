@@ -1,3 +1,55 @@
 
 # macOS
 .DS_Store
+# --------------------
+# Gradle
+# --------------------
+/build
+.gradle
+
+# The distribution zip/tar created by the 'dist' task
+# *.[zip|tar]
+
+# --------------------
+# Java Class Files, etc.
+# --------------------
+*.class
+
+# Generated files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+# Compiler/build output
+/bin
+/out
+
+# --------------------
+# Logs and Temp
+# --------------------
+logs
+*.log
+tmp/
+.temp/
+
+# --------------------
+# IDE - IntelliJ IDEA
+# --------------------
+.idea
+*.iml
+*.iws
+*.ipr
+/out/
+!/out/production/
+!/out/test/
+
+# --------------------
+# IDE - Eclipse / Spring Tool Suite (STS)
+# --------------------
+.classpath
+.project
+.settings
+# Target folder is mainly for Maven but sometimes created
+/target
+
