@@ -40,4 +40,9 @@ public class BookingController {
         service.release(eventId, holdId, seats);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/events/{eventId}/snapshot")
+    public ResponseEntity<SeatingSnapshot> snapshot(@PathVariable UUID eventId) {
+        return ResponseEntity.ok(service.snapshot(eventId));
+    }
 }

@@ -1,12 +1,15 @@
 package com.example.bookingservice.lock;
 
+import com.example.bookingservice.dto.ActiveHold;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -46,17 +49,17 @@ end
 return 1
     """;
 
+
     private static final String LUA_RELEASE = """
-    -- ARGV[1] = holdId, seats keys in ARGV[2..n]
-    local holdId = ARGV[1]
-    for i=2,#ARGV do
-      local key = ARGV[i]
-      local v = redis.call('GET', key)
-      if v == holdId then
-        redis.call('DEL', key)
-      end
-    end
-    return 1
+                    local holdId = ARGV[1]
+                    local released = 0
+                    for i = 1, #KEYS do
+                      if redis.call('GET', KEYS[i]) == holdId then
+                        redis.call('DEL', KEYS[i])
+                        released = released + 1
+                      end
+                    end
+                    return released
     """;
 
     public UUID tryHold(UUID eventId, List<Integer> seats) {
@@ -87,14 +90,56 @@ return 1
     public void release(UUID eventId, UUID holdId, List<Integer> seats) {
         List<String> keys = new ArrayList<>();
         for (int s : seats) keys.add(seatKey(eventId, s));
-        redis.execute(new DefaultRedisScript<>(LUA_RELEASE, Boolean.class),
-                Collections.emptyList(),
-                concat(List.of(holdId.toString()), keys));
+        List<Object> args = List.of(holdId.toString());
+        Long released = redis.execute(
+                new DefaultRedisScript<>(LUA_RELEASE, Long.class),
+                keys,
+                args.toArray()
+        );
         redis.delete(holdKey(holdId));
     }
 
-    private static <T> List<T> concat(List<T> a, List<T> b) {
-        var r = new ArrayList<T>(a.size() + b.size());
-        r.addAll(a); r.addAll(b); return r;
+
+    public Map<UUID, ActiveHold> activeHolds(UUID eventId) {
+        String pattern = "seat:" + eventId + ":*";
+        var keys = redis.keys(pattern);
+
+        Map<UUID, List<Integer>> seatsByHold = new HashMap<>();
+        Map<UUID, Long> minTtlMsByHold = new HashMap<>();
+
+        if (keys != null) {
+            for (String key : keys) {
+                String holdIdStr = redis.opsForValue().get(key);
+                if (holdIdStr == null) continue;
+
+                UUID holdId;
+                try { holdId = UUID.fromString(holdIdStr); }
+                catch (Exception ignore) { continue; }
+
+                int seat = Integer.parseInt(key.substring(key.lastIndexOf(':') + 1));
+
+                seatsByHold.computeIfAbsent(holdId, k -> new ArrayList<>()).add(seat);
+
+                Long ttlMs = redis.getExpire(key, TimeUnit.MILLISECONDS);
+                if (ttlMs != null && ttlMs > 0) {
+                    minTtlMsByHold.merge(holdId, ttlMs, Math::min);
+                }
+            }
+        }
+
+        Map<UUID, ActiveHold> out = new HashMap<>();
+        var now = Instant.now();
+        for (var e : seatsByHold.entrySet()) {
+            UUID holdId = e.getKey();
+            List<Integer> seats = e.getValue();
+            Long ttlMs = minTtlMsByHold.get(holdId);
+            out.put(holdId, new ActiveHold(
+                    holdId,
+                    seats.stream().sorted().toList(),
+                    (ttlMs == null || ttlMs <= 0) ? null : now.plusMillis(ttlMs)
+            ));
+        }
+        return out;
     }
+
 }

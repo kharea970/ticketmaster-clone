@@ -4,6 +4,7 @@ import com.example.bookingservice.dto.*;
 import com.example.bookingservice.lock.SeatLockManager;
 import com.example.bookingservice.model.Booking;
 import com.example.bookingservice.model.BookingItem;
+import com.example.bookingservice.repo.BookingItemRepository;
 import com.example.bookingservice.repo.BookingRepository;
 import com.example.bookingservice.sse.SseHub;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ public class BookingService {
     private final BookingRepository repo;
     private final SeatLockManager locks;
     private final SseHub sse;
+    private final BookingItemRepository itemRepo;
 
     @Value("${app.booking.hold-ttl-seconds:600}")
     long ttlSeconds;
@@ -74,5 +77,16 @@ public class BookingService {
         sse.publish(eventId, """
       {"type":"release","holdId":"%s","seats":%s}
       """.formatted(holdId, seats.toString()));
+    }
+
+    public SeatingSnapshot snapshot(UUID eventId) {
+        var booked = itemRepo.findConfirmedSeatNos(eventId);
+
+        var holdsMap = locks.activeHolds(eventId);
+        var holds = holdsMap.values().stream()
+                .sorted(Comparator.comparing(h -> h.expiresAt() == null ? Instant.EPOCH : h.expiresAt()))
+                .toList();
+
+        return new SeatingSnapshot(eventId, booked, holds);
     }
 }
