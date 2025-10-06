@@ -110,22 +110,6 @@ services:
         condition: service_started
     profiles: [app]
 
-  payment-service:
-    build:
-      context: ./services/payment-service
-      dockerfile: Dockerfile
-    container_name: payment-service
-    expose: ["8084"]
-    profiles: [app]
-
-  notification-service:
-    build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
-    container_name: notification-service
-    expose: ["8085"]
-    profiles: [app]
-
   kibana:
     image: elastic/kibana:8.15.2
     container_name: ticketmaster_kibana
