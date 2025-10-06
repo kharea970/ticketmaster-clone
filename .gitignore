@@ -1,79 +1,29 @@
-## OS cruft
-.DS_Store
-Thumbs.db
-
-## IDEs / editors
-.idea/
-.vscode/
-.run/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.classpath
-*.swp
-*.swo
-
-## Gradle
-.gradle/
+# .gitignore content
+# --------------------
+# GRADLE BUILD ARTIFACTS
+# --------------------
 **/build/
-**/out/
-# keep wrapper
-!gradle/wrapper/gradle-wrapper.jar
-!**/gradlew
-!**/gradlew.bat
-!**/gradle/wrapper/gradle-wrapper.properties
-
-## Maven (just in case)
-target/
-
-## Logs & dumps
-logs/
-**/logs/
-*.log
-hs_err_pid*
-replay_pid*
-*.hprof
-
-## Coverage / reports / temp
-**/jacoco.exec
-**/build/jacoco/**
-**/coverage/**
-**/build/reports/**
-**/build/tmp/**
-
-## Env & local overrides (keep real app configs under resources)
-.env
-.env.*
-**/*.env
-**/application-local.yml
-**/application-local.yaml
-**/application-local.properties
-**/application-*.local.*
-**/application-secret.*
-**/application-override.*
-
-## Docker/local data
-**/.docker/
-**/docker-data/
-**/es_data/
-**/pg_data/
-
-## Archives / binaries (don’t commit built artifacts)
+.gradle/
 *.jar
 *.war
-*.ear
 *.zip
-*.tar
-*.tar.gz
-*.tgz
+**/classes/
+**/generated/
+**/tmp/
 
-## Keystores / certs (if you ever generate locally)
-**/*.jks
-**/*.p12
-**/*.keystore
+# --------------------
+# IDE - IntelliJ IDEA
+# --------------------
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
 
-## Databases (if any local files)
-*.db
-*.sqlite
+# --------------------
+# OS AND UNWANTED FILES
+# --------------------
+.DS_Store
+Thumbs.db
+*.log
+logs/
